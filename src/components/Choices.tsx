@@ -8,7 +8,7 @@ export function Choices({
   picked?: string;
 }) {
   return (
-    <div className="choices">
+    <div className={options.some((o) => o.length > 24) ? 'choices long' : 'choices'}>
       {options.map((o) => {
         let cls = 'choice';
         if (answered && o === correct) cls += ' right';
@@ -23,12 +23,12 @@ export function Choices({
   );
 }
 
-export function Feedback({ ok, children, onNext }: { ok: boolean; children: React.ReactNode; onNext: () => void }) {
+export function Feedback({ ok, children, onNext, nextLabel = 'Next hand' }: { ok: boolean; children: React.ReactNode; onNext: () => void; nextLabel?: string }) {
   return (
     <div className={`feedback ${ok ? 'ok' : 'bad'}`}>
       <strong>{ok ? 'Correct.' : 'Not quite.'}</strong> {children}
       <button className="next" onClick={onNext} autoFocus>
-        Next hand
+        {nextLabel}
       </button>
     </div>
   );

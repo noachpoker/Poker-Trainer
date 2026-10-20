@@ -7,6 +7,7 @@ import { Cards } from '../components/PlayingCard';
 import { Choices, Feedback } from '../components/Choices';
 import { GridLayer, RangeGrid } from '../components/RangeGrid';
 import { record } from '../stats';
+import { routeParam } from '../route';
 
 type Mode = 'rfi' | 'bbdef' | 'pushfold';
 
@@ -103,7 +104,7 @@ const MODES: { id: Mode; label: string }[] = [
 ];
 
 export function Preflop() {
-  const [mode, setMode] = useState<Mode>('rfi');
+  const [mode, setMode] = useState<Mode>(() => (MODES.find((m) => m.id === routeParam('m'))?.id ?? 'rfi'));
   const [n, setN] = useState(0);
   const spot = useMemo(() => makeSpot(mode), [mode, n]);
   const [picked, setPicked] = useState<string>();

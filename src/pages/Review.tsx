@@ -4,6 +4,7 @@ import { CASH_RFI, CashPosition, PUSH_FOLD, PushPosition } from '../poker/charts
 import { requiredEquity } from '../poker/equity';
 import { HandAction, heroFirstIn, ParsedHand, parseHands, SAMPLE_HANDS, Street } from '../poker/handHistory';
 import { Cards } from '../components/PlayingCard';
+import { flopSpr, sprAdvice } from '../poker/spr';
 
 const STORE = 'poker-trainer-hands-v1';
 const STREETS: Street[] = ['preflop', 'flop', 'turn', 'river'];
@@ -66,6 +67,7 @@ function HandDetail({ h, onBack }: { h: ParsedHand; onBack: () => void }) {
   const lastShown = playable[step - 1];
   const street = lastShown?.street ?? 'preflop';
   const flag = chartCheck(h);
+  const spr = flopSpr(h);
 
   return (
     <div>
@@ -77,6 +79,11 @@ function HandDetail({ h, onBack }: { h: ParsedHand; onBack: () => void }) {
         Result: {h.heroNet >= 0 ? '+' : ''}{(h.heroNet / bb).toFixed(1)}bb
       </p>
       {flag && <p className="flag">⚑ {flag}</p>}
+      {spr && (
+        <p className="spr-note">
+          Flop SPR <b>{spr.spr.toFixed(1)}</b> ({+(spr.effective / bb).toFixed(1)}bb behind, {+(spr.pot / bb).toFixed(1)}bb pot). {sprAdvice(spr.spr)}
+        </p>
+      )}
       <div className="table-felt">
                 {BOARD_SIZE[street] ? <Cards cards={h.board.slice(0, BOARD_SIZE[street])} /> : <div className="muted">No flop yet</div>}
       </div>
@@ -109,6 +116,17 @@ function HandDetail({ h, onBack }: { h: ParsedHand; onBack: () => void }) {
           </div>
         );
       })}
+      <details className="practice">
+        <summary>Review this hand like the study guide</summary>
+        <ol>
+          <li>What was villain's range preflop, and what did each action remove from it? Count the combos left.</li>
+          <li>Was each of your key decisions +EV or −EV with what you knew at the time, whatever the result?</li>
+          <li>Was your hand a commitment hand for this SPR?</li>
+          <li>For each bet you made: value, bluff, or denial? A bet with no reason is a leak.</li>
+          <li>What type of player was villain, and which exploit did you use?</li>
+        </ol>
+        <p className="muted">Log any leak you find in your notes doc. <a href="#/learn?ch=4">Hand reading</a> · <a href="#/learn?ch=7">SPR</a> · <a href="#/learn?ch=8">Postflop</a></p>
+      </details>
     </div>
   );
 }
