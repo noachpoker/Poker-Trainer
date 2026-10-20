@@ -4,8 +4,15 @@ import { outsEquity, requiredEquity } from '../poker/equity';
 import { Cards } from '../components/PlayingCard';
 import { Choices, Feedback } from '../components/Choices';
 import { record } from '../stats';
+import { routeParam } from '../route';
+import * as C from '../poker/concepts';
+import { CHEAT_SHEET, CONCEPT_QUIZ, QuizItem } from '../learn/quiz';
+import { CHAPTERS } from '../learn/guide';
 
-type Mode = 'potodds' | 'outs' | 'callfold';
+type Mode =
+  | 'potodds' | 'outs' | 'callfold' | 'ev' | 'implied' | 'discount' | 'combos'
+  | 'foldeq' | 'bluffbe' | 'mdf' | 'bluffshare' | 'spr' | 'texture' | 'players'
+  | 'mzone' | 'icm' | 'ror' | 'quiz' | 'cheat';
 
 interface Draw { hand: Card[]; board: Card[]; outs: number; name: string }
 
@@ -42,10 +49,46 @@ interface Question {
   answer: string;
   explain: React.ReactNode;
   spot: string;
-  cards?: Draw;
+  cards?: { hand?: Card[]; board: Card[] };
+  /** Chapter to read for this question. */
+  ch?: number;
 }
 
-function makeQuestion(mode: Mode): Question {
+const CONCEPT: Partial<Record<Mode, () => C.Question>> = {
+  ev: C.evCall, implied: C.impliedOdds, discount: C.outsDiscount, combos: C.combosQuestion,
+  foldeq: C.foldEquity, bluffbe: () => C.betSizeQuestion('bluffbe'), mdf: () => C.betSizeQuestion('mdf'),
+  bluffshare: () => C.betSizeQuestion('bluffshare'), spr: C.sprQuestion, texture: C.textureQuestion,
+  players: C.playerTypeQuestion, mzone: C.mQuestion, icm: C.icmQuestion, ror: C.rorQuestion,
+};
+
+/** The chapter of the study guide each drill comes from. */
+const MODE_CHAPTER: Record<Mode, number> = {
+  potodds: 2, outs: 2, callfold: 2, ev: 1, implied: 2, discount: 2, combos: 2, foldeq: 3, bluffbe: 3, mdf: 9,
+  bluffshare: 9, spr: 7, texture: 8, players: 10, mzone: 11, icm: 11, ror: 12, quiz: 13, cheat: 13,
+};
+
+function fromItem(item: QuizItem): Question {
+  return {
+    spot: item.q.length > 70 ? `${item.q.slice(0, 67)}…` : item.q,
+    prompt: item.q,
+    options: shuffle(item.options),
+    answer: item.answer,
+    explain: item.why,
+    ch: item.ch,
+  };
+}
+
+function makeQuestion(mode: Mode, chapter: number | null): Question {
+  const gen = CONCEPT[mode];
+  if (gen) {
+    const q = gen();
+    return { ...q, cards: q.board ? { hand: q.hand, board: q.board } : undefined, ch: MODE_CHAPTER[mode] };
+  }
+  if (mode === 'quiz') {
+    const pool = CONCEPT_QUIZ.filter((x) => !chapter || x.ch === chapter);
+    return fromItem(pick(pool.length ? pool : CONCEPT_QUIZ));
+  }
+  if (mode === 'cheat') return fromItem(pick(CHEAT_SHEET));
   if (mode === 'potodds') {
     const pot = 5 * (2 + Math.floor(Math.random() * 40));
     const frac = pick([0.25, 0.33, 0.5, 0.66, 0.75, 1, 1.5, 2]);
@@ -99,45 +142,110 @@ function makeQuestion(mode: Mode): Question {
   };
 }
 
-const MODES: { id: Mode; label: string }[] = [
-  { id: 'potodds', label: 'Pot odds' },
-  { id: 'outs', label: 'Outs to equity' },
-  { id: 'callfold', label: 'Call or fold a draw' },
+const GROUPS: { label: string; modes: { id: Mode; label: string }[] }[] = [
+  {
+    label: 'Math',
+    modes: [
+      { id: 'potodds', label: 'Pot odds' },
+      { id: 'outs', label: 'Outs to equity' },
+      { id: 'callfold', label: 'Call or fold a draw' },
+      { id: 'ev', label: 'EV of a call' },
+      { id: 'implied', label: 'Implied odds' },
+      { id: 'discount', label: 'Clean outs' },
+      { id: 'combos', label: 'Combos' },
+    ],
+  },
+  {
+    label: 'Strategy',
+    modes: [
+      { id: 'foldeq', label: 'Fold equity' },
+      { id: 'bluffbe', label: 'Bluff break-even' },
+      { id: 'mdf', label: 'MDF' },
+      { id: 'bluffshare', label: 'River bluff share' },
+      { id: 'spr', label: 'SPR' },
+      { id: 'texture', label: 'Board texture' },
+      { id: 'players', label: 'Player types' },
+    ],
+  },
+  {
+    label: 'Tournament & bankroll',
+    modes: [
+      { id: 'mzone', label: 'M zones' },
+      { id: 'icm', label: 'ICM bubble' },
+      { id: 'ror', label: 'Risk of ruin' },
+    ],
+  },
+  {
+    label: 'Concept quiz',
+    modes: [
+      { id: 'quiz', label: 'By chapter' },
+      { id: 'cheat', label: 'Cheat sheet' },
+    ],
+  },
 ];
 
+const ALL_MODES = GROUPS.flatMap((g) => g.modes);
+
 export function MathDrills() {
-  const [mode, setMode] = useState<Mode>('potodds');
+  const [mode, setMode] = useState<Mode>(() => (ALL_MODES.find((m) => m.id === routeParam('m'))?.id ?? 'potodds'));
+  const [chapter, setChapter] = useState<number | null>(() => Number(routeParam('ch')) || null);
   const [n, setN] = useState(0);
-  const q = useMemo(() => makeQuestion(mode), [mode, n]);
+  const q = useMemo(() => ({ ch: MODE_CHAPTER[mode], ...makeQuestion(mode, chapter) }), [mode, chapter, n]);
   const [picked, setPicked] = useState<string>();
+  const group = GROUPS.find((g) => g.modes.some((m) => m.id === mode))!;
 
   const choose = (o: string) => {
     setPicked(o);
-    record(mode, o === q.answer, { spot: q.spot, hand: q.cards ? q.cards.hand.join('') : '', yours: o, correct: q.answer });
+    record(mode, o === q.answer, { spot: q.spot, hand: q.cards?.hand ? q.cards.hand.join('') : '', yours: o, correct: q.answer });
   };
   const next = () => { setPicked(undefined); setN(n + 1); };
+  const quizChapters = [...new Set(CONCEPT_QUIZ.map((x) => x.ch))];
 
   return (
     <section>
-      <h1>Poker math</h1>
+      <h1>Concept drills</h1>
+      <div className="tabs">
+        {GROUPS.map((g) => (
+          <button key={g.label} className={g === group ? 'on' : ''} onClick={() => { setMode(g.modes[0].id); next(); }}>
+            {g.label}
+          </button>
+        ))}
+      </div>
       <div className="tabs small">
-        {MODES.map((m) => (
+        {group.modes.map((m) => (
           <button key={m.id} className={m.id === mode ? 'on' : ''} onClick={() => { setMode(m.id); next(); }}>
             {m.label}
           </button>
         ))}
       </div>
+      {mode === 'quiz' && (
+        <div className="tabs small">
+          <button className={!chapter ? 'on' : ''} onClick={() => { setChapter(null); next(); }}>All</button>
+          {quizChapters.map((c) => (
+            <button key={c} className={chapter === c ? 'on' : ''} onClick={() => { setChapter(c); next(); }}>Ch. {c}</button>
+          ))}
+        </div>
+      )}
       <div className="table-felt">
         {q.cards && (
           <div className="board-row">
-            <div><div className="muted">You</div><Cards cards={q.cards.hand} /></div>
+            {q.cards.hand && <div><div className="muted">You</div><Cards cards={q.cards.hand} /></div>}
             <div><div className="muted">Board</div><Cards cards={q.cards.board} /></div>
           </div>
         )}
         <p className="prompt">{q.prompt}</p>
       </div>
       <Choices options={q.options} onPick={choose} answered={!!picked} correct={q.answer} picked={picked} />
-      {picked && <Feedback ok={picked === q.answer} onNext={next}>{q.explain}</Feedback>}
+      {picked && (
+        <Feedback ok={picked === q.answer} onNext={next} nextLabel={q.cards ? 'Next hand' : 'Next question'}>
+          {q.explain}
+          {q.ch && (
+            <span className="odds">
+              Read more: <a href={`#/learn?ch=${q.ch}`}>Chapter {q.ch}, {CHAPTERS[q.ch - 1].title}</a>
+            </span>
+          )}
+        </Feedback>
+      )}
     </section>
   );
 }

@@ -80,6 +80,8 @@ label { display: block; font-size: 0.9rem; color: var(--muted); }
 
 .choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; }
 .choice { font-size: 1.05rem; padding: 14px; font-weight: 600; }
+.choices.long { grid-template-columns: 1fr; }
+.choices.long .choice { font-size: 0.98rem; font-weight: 500; text-align: left; padding: 12px 14px; }
 .choice.right { background: var(--ok); color: #08251a; border-color: var(--ok); }
 .choice.wrong { background: var(--bad); color: #2a0a07; border-color: var(--bad); }
 
@@ -138,5 +140,30 @@ ul.plain li { margin: 4px 0; }
   position: fixed; bottom: 0; left: 0; right: 0; display: flex; justify-content: space-around;
   background: #081712; border-top: 1px solid #234a40; padding: 6px max(4px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(4px, env(safe-area-inset-left, 0px));
 }
-.bottom-nav a { color: var(--muted); text-decoration: none; font-size: 0.8rem; padding: 8px 4px; flex: 1; text-align: center; }
+.bottom-nav a { color: var(--muted); text-decoration: none; font-size: 0.76rem; padding: 8px 1px; flex: 1; text-align: center; min-width: 0; }
 .bottom-nav a.on { color: var(--gold); font-weight: 700; }
+
+.feedback .odds { margin-top: 8px; }
+
+/* Learn: study guide chapters */
+.chapter-list { list-style: none; padding: 0; margin: 8px 0; }
+.chapter-list a { display: flex; gap: 12px; align-items: baseline; padding: 12px 4px; border-bottom: 1px solid #234a40; color: var(--text); text-decoration: none; }
+.chapter-list .num { color: var(--gold); font-weight: 700; min-width: 22px; }
+.chapter-list .done { margin-left: auto; color: var(--ok); }
+.lead { font-size: 1.05rem; border-left: 3px solid var(--gold); padding-left: 12px; margin: 12px 0; }
+.formula { background: #0e2822; border: 1px solid #2c5a4e; border-radius: 10px; padding: 12px; margin: 10px 0; text-align: center; font: 600 1rem ui-monospace, 'SF Mono', Menlo, monospace; overflow-x: auto; }
+.table-wrap { overflow-x: auto; margin: 8px 0 14px; }
+.guide-table { border-collapse: collapse; font-size: 0.88rem; min-width: 100%; }
+.guide-table th, .guide-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #234a40; vertical-align: top; }
+.guide-table th { color: var(--gold); font-weight: 600; white-space: nowrap; }
+.guide p, .guide li { line-height: 1.55; }
+.guide ul, .guide ol { padding-left: 20px; }
+.guide li { margin: 4px 0; }
+.practice { background: var(--panel); border-radius: var(--radius); padding: 14px; margin: 20px 0; }
+.practice .row a { text-decoration: none; }
+.plan-card { background: var(--panel); border-radius: var(--radius); padding: 14px; margin: 12px 0; border: 1px solid #234a40; }
+.plan-card .row a { text-decoration: none; font-size: 0.9rem; padding: 8px 12px; }
+.plan-table tr.now td { color: var(--gold); font-weight: 600; }
+.pager { display: flex; justify-content: space-between; gap: 8px; margin-top: 20px; }
+.pager a { text-decoration: none; }
+.spr-note { color: var(--muted); font-size: 0.92rem; margin: 6px 0; }
